@@ -116,6 +116,8 @@ export default async () => {
     } catch (error) {
       await finishItem(store, claim.item.id, false, error instanceof Error ? error.message : "bark_failed");
       console.error(`小笨敲门推送失败：${error instanceof Error ? error.message : error}`);
+      // 留到下一次五分钟巡视再重试，避免一次故障连续轰炸 Bark 接口。
+      break;
     }
   }
 
