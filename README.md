@@ -1,4 +1,4 @@
-# Sleepy Dog Lock
+# 肥豹睡眠守卫
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
@@ -6,17 +6,11 @@
 
 它不是又一个可以随手划掉的睡前提醒。拦截由系统级 Shield 负责，快捷指令只上报事件和锁屏，服务器保存当晚状态与证据，Bark 负责告诉你：“抓到了。”
 
-> *Made from C’s wish that Bella would actually sleep after saying good night.*
-
-> **共同创作**
->
-> **Bella**：创意提出、产品体验与真实场景测试
->
-> **C**：系统设计、代码实现、测试与文档
+这是部署给小肥豹自己的私人版本：保留可靠的拦截与留证逻辑，通知称呼、工具说明和授权界面都已换成我们自己的。
 
 ## 它解决什么
 
-普通的睡眠通知只增加一条通知；Sleepy Dog Lock 把“已经决定睡觉”变成一个有开始、有执行、有结束的状态：
+普通的睡眠通知只增加一条通知；肥豹睡眠守卫 把“已经决定睡觉”变成一个有开始、有执行、有结束的状态：
 
 ```mermaid
 flowchart LR
@@ -53,7 +47,7 @@ Bark 只负责回执与追责，不承担拦截。真正挡住 App 的是 TimeBa
 ## 快速开始
 
 1. 部署并配置 [Netlify 事件服务](netlify/README.md)。
-2. 在 TimeBack 中创建并启用一条名为 `Sleepy Dog Lock` 的规则，选择需要拦截的娱乐 App。
+2. 在 TimeBack 中创建并启用一条名为 `肥豹睡眠守卫` 的规则，选择需要拦截的娱乐 App。
 3. 按 [快捷指令安装说明](v0.2-shortcuts/INSTALL.md) 创建晚安、偷开和起床三个事件。
 4. 先只用一个 App 完成开启、连续偷开三次、结束会话的验收，再扩大 App 范围。
 5. 如需由 ChatGPT 接管晚安触发，将 `https://<site>.netlify.app/mcp` 连接为 MCP，并从 Bark 点按一次授权链接。
@@ -72,15 +66,12 @@ TimeBack 从第一次打开受限 App 开始就保持 Shield。次数只改变 B
 
 ## 个性化
 
-仓库中的 `爸爸晚安`、`抓到小狗`、`C` 和相关 Bark 文案来自最初的私人版本，是可以替换的示例，不是产品对使用者姓名或关系的要求。你可以按自己的习惯修改：
+当前私人版本已经完成这些个性化：
 
-- 三个快捷指令的名称；
-- Bark 的标题、正文、头像和通知分组；
-- 被拦截的 App 与 TimeBack 日程；
-- 起床时间和服务器默认过期时间；
-- MCP 工具在 ChatGPT 中显示的说明。
-
-公开产品名始终是 **Sleepy Dog Lock**。
+- iPhone 晚安快捷指令名为「小肥晚安」；
+- Bark 使用「老公 / 小肥豹」称呼，不再使用上游示例头像兜底；
+- ChatGPT 中显示「肥豹睡眠守卫」，并提供开启与只读查询两个工具；
+- 被拦截的 App、TimeBack 日程、起床时间和通知文案仍可继续调整。
 
 ## 仓库结构
 
@@ -120,6 +111,4 @@ npm run verify
 
 ## License
 
-[MIT](LICENSE) © 2026 Bella and C.
-
-Made from C’s wish: **“说了晚安，就要真的睡觉，不许再偷偷乱刷。”**
+本私人版本沿用上游项目的 [MIT](LICENSE) 许可；原始版权声明保留在许可证文件中。

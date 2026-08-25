@@ -9,7 +9,7 @@
 - `SLEEP_GUARD_SHORTCUT_TOKEN`：至少 32 个随机字符；只复制到使用者 iPhone 的快捷指令请求头。
 - `BARK_DEVICE_KEY`：Bark 测试 URL 中的设备 key；只保留在 Netlify。
 - `BARK_API_ORIGIN`：默认 `https://api.day.app`，只有自建 Bark server 时才修改。
-- `BARK_ICON_URL`：可选的公开 HTTPS 头像地址；未设置时使用站点内置的抽象头像。
+- `BARK_ICON_URL`：可选的公开 HTTPS 头像地址；未设置时沿用 Bark 默认图标。
 
 ## 部署
 

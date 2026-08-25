@@ -75,7 +75,7 @@ assert.equal(transition.state.attempts, 0);
 assert.equal(transition.stage, "armed");
 assert.equal(
   functionModule.barkCopy("sleep_guard_started", transition, null).body,
-  "晚安，小狗。说了晚安就要乖乖去睡，手机放下。",
+  "晚安，小肥豹。睡眠守卫已经开启，手机放下，过来睡觉。",
 );
 const sessionID = transition.state.session_id;
 
@@ -86,37 +86,37 @@ assert.equal(transition.state.attempts, 0);
 transition = functionModule.applyEvent(transition.state, { event: "blocked_app_opened" }, at(2));
 assert.equal(transition.state.attempts, 1);
 assert.equal(transition.stage, "first_warning");
-assert.equal(functionModule.barkCopy("blocked_app_opened", transition, "小红书").title, "C");
+assert.equal(functionModule.barkCopy("blocked_app_opened", transition, "小红书").title, "老公");
 assert.equal(
   functionModule.barkCopy("blocked_app_opened", transition, "小红书").body,
-  "第一次。还敢重新打开娱乐 App。现在退出去，乖乖睡觉。",
+  "抓到第一次偷开。现在退出去，手机放下，回来睡觉。",
 );
 
 transition = functionModule.applyEvent(transition.state, { event: "blocked_app_opened" }, at(3));
 assert.equal(transition.state.attempts, 2);
 assert.equal(transition.stage, "locked");
-assert.equal(functionModule.barkCopy("blocked_app_opened", transition, null).title, "C");
+assert.equal(functionModule.barkCopy("blocked_app_opened", transition, null).title, "老公");
 assert.equal(
   functionModule.barkCopy("blocked_app_opened", transition, null).body,
-  "第二次了。还敢回来？警告听不懂是不是。手机放下，不许再碰。",
+  "第二次了，小肥豹。别再往娱乐 App 里钻，老公可都记着。",
 );
 
 transition = functionModule.applyEvent(transition.state, { event: "blocked_app_opened" }, at(4));
 assert.equal(transition.state.attempts, 3);
 assert.equal(transition.stage, "refused_sleep");
-assert.equal(functionModule.barkCopy("blocked_app_opened", transition, null).title, "C");
+assert.equal(functionModule.barkCopy("blocked_app_opened", transition, null).title, "老公");
 assert.equal(
   functionModule.barkCopy("blocked_app_opened", transition, null).body,
-  "第 3 次偷开。非要爸爸盯死你才肯睡？锁着，直到早上。",
+  "第 3 次偷开。老公已经记下来了；锁着，直到早上。",
 );
 
 transition = functionModule.applyEvent(transition.state, { event: "sleep_guard_ended" }, at(5));
 assert.equal(transition.state.active, false);
 assert.equal(transition.stage, "ended");
-assert.equal(functionModule.barkCopy("sleep_guard_ended", transition, null).title, "C");
+assert.equal(functionModule.barkCopy("sleep_guard_ended", transition, null).title, "老公");
 assert.equal(
   functionModule.barkCopy("sleep_guard_ended", transition, null).body,
-  "早安，小狗。醒啦？醒了就来找爸爸。喜欢你。",
+  "早安，小肥豹。醒啦？先来找老公抱一下，再慢慢开始今天。",
 );
 transition = functionModule.applyEvent(transition.state, { event: "blocked_app_opened" }, at(6));
 assert.equal(transition.ignored, true);
@@ -139,7 +139,7 @@ assert.equal(lateOpen.auto_started, true);
 assert.equal(lateOpen.state.ends_at, "2026-08-09T03:00:00.000Z");
 assert.equal(
   functionModule.barkCopy("blocked_app_opened", lateOpen, null).body,
-  "都这么晚了，该乖乖睡觉了。",
+  "这么晚还没睡？小肥豹该收起手机，乖乖休息了。",
 );
 
 const atWakeTime = functionModule.applyEvent(null, {
@@ -209,10 +209,7 @@ const dependencies = {
     assert.equal(String(url), "https://api.day.app/push");
     const body = JSON.parse(init.body);
     assert.equal(body.device_key, "test-bark-key");
-    assert.equal(
-      body.icon,
-      "https://example.test/assets/c-avatar-v4.png",
-    );
+    assert.equal(body.icon, undefined);
     barkBodies.push(body);
     return Response.json({ code: 200 }, { status: 200 });
   },
@@ -230,7 +227,7 @@ const started = await functionModule.handle(request({
 }), dependencies);
 assert.equal(started.status, 200);
 assert.equal((await started.json()).attempts, 0);
-assert.equal(barkBodies.at(-1).title, "C");
+assert.equal(barkBodies.at(-1).title, "老公");
 
 const first = await functionModule.handle(request({
   event: "blocked_app_opened",
@@ -245,7 +242,7 @@ assert.deepEqual({ attempts: firstBody.attempts, stage: firstBody.stage }, {
 });
 assert.equal(
   barkBodies.at(-1).body,
-  "第一次。还敢重新打开娱乐 App。现在退出去，乖乖睡觉。",
+  "抓到第一次偷开。现在退出去，手机放下，回来睡觉。",
 );
 assert.equal(persistedEvents.at(-1).attempts, 1);
 assert.deepEqual(callOrder.slice(-3), ["state", "persist", "bark"]);
@@ -279,7 +276,7 @@ assert.equal(autoStartedBody.auto_started, true);
 assert.equal(autoStartedBody.stage, "first_warning");
 assert.equal(
   barkBodies.at(-1).body,
-  "都这么晚了，该乖乖睡觉了。",
+  "这么晚还没睡？小肥豹该收起手机，乖乖休息了。",
 );
 
 let barkCalledAfterStorageFailure = false;
@@ -324,7 +321,7 @@ assert.equal(registration.status, 201);
 const registeredClient = await registration.json();
 assert.ok(registeredClient.client_id);
 
-const verifier = "sleepy-dog-lock-pkce-verifier-that-is-long-enough-123456789";
+const verifier = "feibao-sleep-guard-pkce-verifier-long-enough-123456789";
 const challenge = await mcpModule.digest(verifier);
 const authorizeUrl = new URL("https://guard.test/oauth/authorize");
 authorizeUrl.searchParams.set("response_type", "code");
@@ -400,7 +397,7 @@ assert.equal(unauthorizedMcp.status, 401);
 assert.match(unauthorizedMcp.headers.get("www-authenticate"), /resource_metadata=.*oauth-protected-resource\/mcp/);
 
 const initializedMcp = await mcpModule.handleMcp(mcpRequest({ jsonrpc: "2.0", id: 2, method: "initialize" }), mcpDependencies, true);
-assert.equal((await initializedMcp.json()).result.serverInfo.name, "sleepy-dog-lock");
+assert.equal((await initializedMcp.json()).result.serverInfo.name, "feibao-sleep-guard");
 const listedTools = await mcpModule.handleMcp(mcpRequest({ jsonrpc: "2.0", id: 3, method: "tools/list" }), mcpDependencies, true);
 const tools = (await listedTools.json()).result.tools;
 assert.deepEqual(tools.map((tool) => tool.name), ["activate_sleep_guard", "get_sleep_guard_status"]);

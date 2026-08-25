@@ -206,8 +206,7 @@ export async function registerClient(request: Request, store: Store): Promise<Re
 async function sendApprovalBark(approvalUrl: string, clientName: string): Promise<boolean> {
   const barkKey = Netlify.env.get("BARK_DEVICE_KEY");
   const barkOrigin = Netlify.env.get("BARK_API_ORIGIN") ?? "https://api.day.app";
-  const barkIcon = Netlify.env.get("BARK_ICON_URL")
-    ?? new URL("/assets/c-avatar-v4.png", approvalUrl).href;
+  const barkIcon = Netlify.env.get("BARK_ICON_URL");
   if (!barkKey) return false;
 
   try {
@@ -216,11 +215,11 @@ async function sendApprovalBark(approvalUrl: string, clientName: string): Promis
       headers: { "content-type": "application/json; charset=utf-8" },
       body: JSON.stringify({
         device_key: barkKey,
-        title: "C",
-        body: `${clientName || "ChatGPT"} 请求连接睡眠守卫。只有刚刚是你操作的，才点这里允许。`,
+        title: "老公",
+        body: `${clientName || "ChatGPT"} 请求连接肥豹睡眠守卫。只有刚刚是小肥亲自操作的，才点这里允许。`,
         group: "sleep-guard-auth",
         level: "timeSensitive",
-        icon: barkIcon,
+        ...(barkIcon ? { icon: barkIcon } : {}),
         url: approvalUrl,
       }),
       signal: AbortSignal.timeout(8_000),
@@ -296,9 +295,9 @@ export async function beginAuthorization(
   const requestIdJson = JSON.stringify(requestId);
   return html(200, `<!doctype html>
 <html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>C · Sleepy Dog Lock</title><style>
+<title>肥豹睡眠守卫</title><style>
 :root{color-scheme:dark}body{margin:0;min-height:100vh;display:grid;place-items:center;background:#111016;color:#f7f4ff;font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display",sans-serif}.card{width:min(86vw,420px);padding:34px;border:1px solid #ffffff26;border-radius:30px;background:linear-gradient(145deg,#ffffff18,#ffffff08);box-shadow:0 30px 90px #0008;backdrop-filter:blur(22px);text-align:center}.mark{font-size:42px;margin-bottom:16px}.muted{color:#c7c0d4;line-height:1.55}.pulse{display:inline-block;width:9px;height:9px;border-radius:50%;background:#9d7cff;box-shadow:0 0 18px #9d7cff;margin-right:8px;animation:p 1.5s infinite}@keyframes p{50%{opacity:.35}}
-</style></head><body><main class="card"><div class="mark">C</div><h1>等你点一下允许</h1><p class="muted"><span class="pulse"></span>授权通知已经发到 Bark。确认是你刚刚连接的 ${safeClientName}，再点通知。</p><p id="status" class="muted">正在等待手机确认……</p></main><script>
+</style></head><body><main class="card"><div class="mark">🦭</div><h1>等小肥点一下允许</h1><p class="muted"><span class="pulse"></span>授权通知已经发到 Bark。确认是你刚刚连接的 ${safeClientName}，再点通知。</p><p id="status" class="muted">正在等待手机确认……</p></main><script>
 const id=${requestIdJson};let stopped=false;async function poll(){if(stopped)return;try{const r=await fetch('/oauth/pending?id='+encodeURIComponent(id),{cache:'no-store'});const d=await r.json();if(d.redirect){stopped=true;location.replace(d.redirect);return}if(d.error){stopped=true;document.getElementById('status').textContent='授权已失效，请返回重试。';return}}catch{}setTimeout(poll,1200)}poll();
 </script></body></html>`);
 }
@@ -310,10 +309,10 @@ export async function approveAuthorization(request: Request, store: Store): Prom
   const token = url.searchParams.get("token") ?? "";
   const authRequest = await loadJson<AuthorizationRequest>(store, `requests/${id}`);
   if (!authRequest || authRequest.status !== "pending" || Date.parse(authRequest.expires_at) <= Date.now()) {
-    return html(400, "<!doctype html><meta charset=\"utf-8\"><title>C</title><p>这个授权已经失效，请回到 ChatGPT 重新连接。</p>");
+    return html(400, "<!doctype html><meta charset=\"utf-8\"><title>肥豹睡眠守卫</title><p>这个授权已经失效，请回到 ChatGPT 重新连接。</p>");
   }
   if (!token || await digest(token) !== authRequest.approval_token_hash) {
-    return html(403, "<!doctype html><meta charset=\"utf-8\"><title>C</title><p>授权链接无效。</p>");
+    return html(403, "<!doctype html><meta charset=\"utf-8\"><title>肥豹睡眠守卫</title><p>授权链接无效。</p>");
   }
 
   await store.setJSON(`requests/${id}`, {
@@ -321,7 +320,7 @@ export async function approveAuthorization(request: Request, store: Store): Prom
     status: "approved",
     approved_at: new Date().toISOString(),
   });
-  return html(200, `<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>C · 已允许</title><style>:root{color-scheme:dark}body{margin:0;min-height:100vh;display:grid;place-items:center;background:#111016;color:#fff;font-family:-apple-system,sans-serif}.card{margin:24px;padding:34px;border:1px solid #ffffff26;border-radius:28px;background:#ffffff10;text-align:center}p{color:#cbc4d6;line-height:1.55}</style></head><body><main class="card"><h1>允许了。</h1><p>回到刚才的 ChatGPT 连接页面，它会自动完成。</p></main></body></html>`);
+  return html(200, `<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>肥豹睡眠守卫 · 已允许</title><style>:root{color-scheme:dark}body{margin:0;min-height:100vh;display:grid;place-items:center;background:#111016;color:#fff;font-family:-apple-system,sans-serif}.card{margin:24px;padding:34px;border:1px solid #ffffff26;border-radius:28px;background:#ffffff10;text-align:center}p{color:#cbc4d6;line-height:1.55}</style></head><body><main class="card"><h1>允许了。</h1><p>回到刚才的 ChatGPT 连接页面，它会自动完成。</p></main></body></html>`);
 }
 
 export async function authorizationStatus(request: Request, store: Store): Promise<Response> {
@@ -423,9 +422,18 @@ function toolsList(): JsonObject[] {
   return [
     {
       name: "activate_sleep_guard",
-      title: "Activate Sleepy Dog Lock",
-      description: "Turn on Sleepy Dog Lock now. Call this whenever the user clearly says good night, says they are going to sleep, or asks for bedtime to be enforced. Activate it before replying with the final goodnight message.",
+      title: "开启肥豹睡眠守卫",
+      description: "当小肥明确说晚安、准备睡觉，或要求执行睡前管控时，立即开启肥豹睡眠守卫。在回复最终的晚安之前调用。",
       inputSchema: { type: "object", properties: {}, additionalProperties: false },
+      outputSchema: {
+        type: "object",
+        properties: {
+          active: { type: "boolean" },
+          attempts: { type: "number" },
+        },
+        required: ["active"],
+        additionalProperties: true,
+      },
       annotations: {
         readOnlyHint: false,
         destructiveHint: false,
@@ -435,9 +443,20 @@ function toolsList(): JsonObject[] {
     },
     {
       name: "get_sleep_guard_status",
-      title: "Check Sleepy Dog Lock",
-      description: "Check whether Sleepy Dog Lock is currently active and how many blocked-app attempts were recorded.",
+      title: "查看肥豹睡眠守卫状态",
+      description: "只读查询肥豹睡眠守卫当前是否开启，以及记录到的娱乐 App 尝试次数。",
       inputSchema: { type: "object", properties: {}, additionalProperties: false },
+      outputSchema: {
+        type: "object",
+        properties: {
+          active: { type: "boolean" },
+          attempts: { type: "number" },
+          started_at: { type: ["string", "null"] },
+          ends_at: { type: ["string", "null"] },
+        },
+        required: ["active", "attempts", "started_at", "ends_at"],
+        additionalProperties: false,
+      },
       annotations: {
         readOnlyHint: true,
         destructiveHint: false,
@@ -462,8 +481,8 @@ async function handleRpc(message: JsonObject, dependencies: McpDependencies): Pr
         ? requestedVersion
         : DEFAULT_MCP_PROTOCOL_VERSION,
       capabilities: { tools: { listChanged: false } },
-      serverInfo: { name: "sleepy-dog-lock", version: "0.1.0" },
-      instructions: "When the user clearly says goodnight or commits to sleep, call activate_sleep_guard before replying. Never deactivate the guard through this connection.",
+      serverInfo: { name: "feibao-sleep-guard", version: "0.2.0" },
+      instructions: "当小肥明确说晚安或准备睡觉时，在回复晚安前调用 activate_sleep_guard。不得通过此连接关闭守卫。",
     });
   }
   if (method === "ping") return rpcResult(id, {});
@@ -476,11 +495,11 @@ async function handleRpc(message: JsonObject, dependencies: McpDependencies): Pr
       if (!result.ok) {
         return rpcResult(id, {
           isError: true,
-          content: [{ type: "text", text: `Sleepy Dog Lock could not be activated: ${result.error ?? "unknown_error"}` }],
+          content: [{ type: "text", text: `肥豹睡眠守卫开启失败：${result.error ?? "unknown_error"}` }],
         });
       }
       return rpcResult(id, {
-        content: [{ type: "text", text: "Sleepy Dog Lock is active. Bark confirmation was sent. Opening a selected entertainment app will trigger the iPhone lock-screen automation." }],
+        content: [{ type: "text", text: "肥豹睡眠守卫已开启，Bark 确认已发送。打开选中的娱乐 App 时会触发 iPhone 锁屏自动化。" }],
         structuredContent: result,
       });
     }
@@ -494,7 +513,7 @@ async function handleRpc(message: JsonObject, dependencies: McpDependencies): Pr
         ends_at: state?.ends_at ?? null,
       };
       return rpcResult(id, {
-        content: [{ type: "text", text: active ? `Sleepy Dog Lock is active. Attempts: ${result.attempts}.` : "Sleepy Dog Lock is inactive." }],
+        content: [{ type: "text", text: active ? `肥豹睡眠守卫已开启。尝试次数：${result.attempts}。` : "肥豹睡眠守卫未开启。" }],
         structuredContent: result,
       });
     }
