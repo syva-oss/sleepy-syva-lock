@@ -66,7 +66,7 @@ const emptyState = (now: string): GuardState => ({
 
 const SHANGHAI_OFFSET_MS = 8 * 60 * 60 * 1000;
 const AUTO_START_HOUR = 1;
-const WAKE_HOUR = 11;
+const WAKE_HOUR = 9;
 
 function shanghaiNow(now: Date): Date {
   return new Date(now.getTime() + SHANGHAI_OFFSET_MS);
@@ -120,7 +120,7 @@ function normalizedEnd(value: unknown, now: Date): string {
     return candidate.toISOString();
   }
 
-  // This deployment uses the next 11:00 in Shanghai as its fallback,
+  // This deployment uses the next 09:00 in Shanghai as its fallback,
   // rather than a rolling duration that could keep the phone locked all afternoon.
   let end = shanghaiWakeTime(now);
   if (end <= now) end = new Date(end.getTime() + 24 * 60 * 60 * 1000);
