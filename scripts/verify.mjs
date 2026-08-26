@@ -136,7 +136,7 @@ assert.equal(lateOpen.state.active, true, "01:00 in Shanghai must auto-start on 
 assert.equal(lateOpen.state.attempts, 1);
 assert.equal(lateOpen.stage, "first_warning");
 assert.equal(lateOpen.auto_started, true);
-assert.equal(lateOpen.state.ends_at, "2026-08-09T03:00:00.000Z");
+assert.equal(lateOpen.state.ends_at, "2026-08-09T01:00:00.000Z");
 assert.equal(
   functionModule.barkCopy("blocked_app_opened", lateOpen, null).body,
   "这么晚还没睡？小肥豹该收起手机，乖乖休息了。",
@@ -144,8 +144,8 @@ assert.equal(
 
 const atWakeTime = functionModule.applyEvent(null, {
   event: "blocked_app_opened",
-}, "2026-08-09T03:00:00.000Z");
-assert.equal(atWakeTime.stage, "inactive", "11:00 in Shanghai must not auto-start");
+}, "2026-08-09T01:00:00.000Z");
+assert.equal(atWakeTime.stage, "inactive", "09:00 in Shanghai must not auto-start");
 
 const manuallyEnded = functionModule.applyEvent(lateOpen.state, {
   event: "sleep_guard_ended",
@@ -153,7 +153,7 @@ const manuallyEnded = functionModule.applyEvent(lateOpen.state, {
 const afterManualWake = functionModule.applyEvent(manuallyEnded.state, {
   event: "blocked_app_opened",
 }, "2026-08-08T19:00:00.000Z");
-assert.equal(afterManualWake.stage, "inactive", "manual wake must suppress auto-start until 11:00");
+assert.equal(afterManualWake.stage, "inactive", "manual wake must suppress auto-start until 09:00");
 assert.equal(afterManualWake.auto_started, false);
 
 const nextNight = functionModule.applyEvent(manuallyEnded.state, {
@@ -174,16 +174,16 @@ const overnightDefault = functionModule.applyEvent(null, {
 }, "2026-08-08T17:00:00.000Z");
 assert.equal(
   overnightDefault.state.ends_at,
-  "2026-08-09T03:00:00.000Z",
-  "01:00 in Shanghai must end at 11:00 the same morning",
+  "2026-08-09T01:00:00.000Z",
+  "01:00 in Shanghai must end at 09:00 the same morning",
 );
 const afternoonDefault = functionModule.applyEvent(null, {
   event: "sleep_guard_started",
 }, "2026-08-08T05:00:00.000Z");
 assert.equal(
   afternoonDefault.state.ends_at,
-  "2026-08-09T03:00:00.000Z",
-  "after 11:00 in Shanghai must end at 11:00 the next morning",
+  "2026-08-09T01:00:00.000Z",
+  "after 09:00 in Shanghai must end at 09:00 the next morning",
 );
 
 const request = (body, token = "test-shortcut-token") => new Request("https://example.test/api", {
@@ -383,8 +383,10 @@ assert.equal(replayedCode.status, 400);
 assert.equal((await replayedCode.json()).error, "invalid_grant");
 
 let mcpActivations = 0;
+let mcpDeactivations = 0;
 const mcpDependencies = {
   activateGuard: async () => { mcpActivations += 1; return { ok: true, active: true, attempts: 0, stage: "armed" }; },
+  deactivateGuard: async () => { mcpDeactivations += 1; return { ok: true, active: false, attempts: 2, stage: "ended" }; },
   readGuardState: async () => ({ active: true, attempts: 2, ends_at: "2099-01-01T00:00:00.000Z" }),
 };
 const mcpRequest = (body) => new Request("https://guard.test/mcp", {
@@ -400,8 +402,14 @@ const initializedMcp = await mcpModule.handleMcp(mcpRequest({ jsonrpc: "2.0", id
 assert.equal((await initializedMcp.json()).result.serverInfo.name, "feibao-sleep-guard");
 const listedTools = await mcpModule.handleMcp(mcpRequest({ jsonrpc: "2.0", id: 3, method: "tools/list" }), mcpDependencies, true);
 const tools = (await listedTools.json()).result.tools;
-assert.deepEqual(tools.map((tool) => tool.name), ["activate_sleep_guard", "get_sleep_guard_status"]);
+assert.deepEqual(tools.map((tool) => tool.name), [
+  "activate_sleep_guard",
+  "deactivate_sleep_guard",
+  "get_sleep_guard_status",
+]);
 assert.equal(tools[0].annotations.readOnlyHint, false);
+assert.equal(tools[1].annotations.readOnlyHint, false);
+assert.equal(tools[2].annotations.readOnlyHint, true);
 
 const activatedMcp = await mcpModule.handleMcp(mcpRequest({
   jsonrpc: "2.0",
@@ -412,6 +420,17 @@ const activatedMcp = await mcpModule.handleMcp(mcpRequest({
 const activatedMcpBody = await activatedMcp.json();
 assert.equal(activatedMcpBody.result.structuredContent.active, true);
 assert.equal(mcpActivations, 1);
+
+const deactivatedMcp = await mcpModule.handleMcp(mcpRequest({
+  jsonrpc: "2.0",
+  id: 5,
+  method: "tools/call",
+  params: { name: "deactivate_sleep_guard", arguments: {} },
+}), mcpDependencies, true);
+const deactivatedMcpBody = await deactivatedMcp.json();
+assert.equal(deactivatedMcpBody.result.structuredContent.active, false);
+assert.equal(deactivatedMcpBody.result.structuredContent.attempts, 2);
+assert.equal(mcpDeactivations, 1);
 
 console.log(
   `verify passed: ${sourceFiles.length} files, guard state/API, OAuth PKCE/replay protection, MCP auth/tools, durable event before Bark`,
