@@ -298,6 +298,20 @@ assert.equal(barkFailure.status, 502);
 assert.equal(persistedBeforeBarkFailure, true);
 
 const mcpModule = await import(new URL("netlify/netlify/functions/mcp.mts", root));
+assert.equal(
+  mcpModule.sessionWakeCutoff("2026-08-25T11:12:30.520Z"),
+  Date.parse("2026-08-26T01:00:00.000Z"),
+  "a legacy evening session must expire at 09:00 Shanghai time",
+);
+assert.equal(
+  mcpModule.sessionWakeCutoff("2026-08-26T00:00:00.000Z"),
+  Date.parse("2026-08-26T01:00:00.000Z"),
+);
+assert.equal(
+  mcpModule.sessionWakeCutoff("2026-08-26T02:00:00.000Z"),
+  Date.parse("2026-08-27T01:00:00.000Z"),
+);
+assert.equal(mcpModule.sessionWakeCutoff("not-a-date"), null);
 assert.ok(mcpModule.config.path.includes("/mcp"));
 assert.ok(mcpModule.config.path.includes("/.well-known/oauth-authorization-server"));
 

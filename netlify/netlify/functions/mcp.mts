@@ -6,6 +6,9 @@ const WRITE_SCOPE = "sleep_guard:write";
 const AUTH_REQUEST_TTL_MS = 10 * 60 * 1000;
 const AUTH_CODE_TTL_MS = 5 * 60 * 1000;
 const ACCESS_TOKEN_TTL_SECONDS = 90 * 24 * 60 * 60;
+const SHANGHAI_OFFSET_MS = 8 * 60 * 60 * 1000;
+const DEFAULT_WAKE_HOUR = 9;
+const DAY_MS = 24 * 60 * 60 * 1000;
 type JsonObject = Record<string, unknown>;
 
 type OAuthClient = {
@@ -126,6 +129,25 @@ async function loadJson<T>(store: Store, key: string): Promise<T | null> {
 
 function origin(request: Request): string {
   return new URL(request.url).origin;
+}
+
+export function sessionWakeCutoff(startedAt: unknown): number | null {
+  if (typeof startedAt !== "string") return null;
+  const started = new Date(startedAt);
+  if (Number.isNaN(started.getTime())) return null;
+
+  const local = new Date(started.getTime() + SHANGHAI_OFFSET_MS);
+  let wake = Date.UTC(
+    local.getUTCFullYear(),
+    local.getUTCMonth(),
+    local.getUTCDate(),
+    DEFAULT_WAKE_HOUR - 8,
+    0,
+    0,
+    0,
+  );
+  if (wake <= started.getTime()) wake += DAY_MS;
+  return wake;
 }
 
 function isAllowedRedirectUri(value: unknown): value is string {
@@ -626,7 +648,17 @@ async function productionDependencies(request: Request): Promise<McpDependencies
   return {
     activateGuard: async () => await sendGuardEvent("sleep_guard_started"),
     deactivateGuard: async () => await sendGuardEvent("sleep_guard_ended"),
-    readGuardState: async () => await eventStore.get("state/current", { type: "json" }) as JsonObject | null,
+    readGuardState: async () => {
+      let state = await eventStore.get("state/current", { type: "json" }) as JsonObject | null;
+      const wakeCutoff = sessionWakeCutoff(state?.started_at);
+      if (state?.active && wakeCutoff !== null && wakeCutoff <= Date.now()) {
+        const ended = await sendGuardEvent("sleep_guard_ended");
+        if (ended.ok) {
+          state = await eventStore.get("state/current", { type: "json" }) as JsonObject | null;
+        }
+      }
+      return state;
+    },
   };
 }
 
