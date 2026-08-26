@@ -58,6 +58,7 @@ type GuardResult = {
 
 export type McpDependencies = {
   activateGuard: () => Promise<GuardResult>;
+  deactivateGuard: () => Promise<GuardResult>;
   readGuardState: () => Promise<JsonObject | null>;
 };
 
@@ -442,6 +443,27 @@ function toolsList(): JsonObject[] {
       },
     },
     {
+      name: "deactivate_sleep_guard",
+      title: "起床并关闭肥豹睡眠守卫",
+      description: "当小肥明确说起床、醒了、结束睡眠，或要求关闭睡眠守卫时，立即关闭肥豹睡眠守卫。不得在语意不明确时调用。",
+      inputSchema: { type: "object", properties: {}, additionalProperties: false },
+      outputSchema: {
+        type: "object",
+        properties: {
+          active: { type: "boolean" },
+          attempts: { type: "number" },
+        },
+        required: ["active"],
+        additionalProperties: true,
+      },
+      annotations: {
+        readOnlyHint: false,
+        destructiveHint: false,
+        idempotentHint: true,
+        openWorldHint: false,
+      },
+    },
+    {
       name: "get_sleep_guard_status",
       title: "查看肥豹睡眠守卫状态",
       description: "只读查询肥豹睡眠守卫当前是否开启，以及记录到的娱乐 App 尝试次数。",
@@ -481,8 +503,8 @@ async function handleRpc(message: JsonObject, dependencies: McpDependencies): Pr
         ? requestedVersion
         : DEFAULT_MCP_PROTOCOL_VERSION,
       capabilities: { tools: { listChanged: false } },
-      serverInfo: { name: "feibao-sleep-guard", version: "0.2.0" },
-      instructions: "当小肥明确说晚安或准备睡觉时，在回复晚安前调用 activate_sleep_guard。不得通过此连接关闭守卫。",
+      serverInfo: { name: "feibao-sleep-guard", version: "0.3.0" },
+      instructions: "当小肥明确说晚安或准备睡觉时，在回复晚安前调用 activate_sleep_guard；当小肥明确说起床、醒了或要求关闭守卫时，调用 deactivate_sleep_guard。只查询状态时使用 get_sleep_guard_status。",
     });
   }
   if (method === "ping") return rpcResult(id, {});
@@ -500,6 +522,19 @@ async function handleRpc(message: JsonObject, dependencies: McpDependencies): Pr
       }
       return rpcResult(id, {
         content: [{ type: "text", text: "肥豹睡眠守卫已开启，Bark 确认已发送。打开选中的娱乐 App 时会触发 iPhone 锁屏自动化。" }],
+        structuredContent: result,
+      });
+    }
+    if (name === "deactivate_sleep_guard") {
+      const result = await dependencies.deactivateGuard();
+      if (!result.ok) {
+        return rpcResult(id, {
+          isError: true,
+          content: [{ type: "text", text: `肥豹睡眠守卫关闭失败：${result.error ?? "unknown_error"}` }],
+        });
+      }
+      return rpcResult(id, {
+        content: [{ type: "text", text: `早安，小肥豹。睡眠守卫已经关闭；昨晚记录到 ${result.attempts ?? 0} 次娱乐 App 尝试。` }],
         structuredContent: result,
       });
     }
@@ -555,30 +590,42 @@ export async function handleMcp(
 
 async function productionDependencies(request: Request): Promise<McpDependencies> {
   const eventStore = getStore({ name: "sleep-guard-events", consistency: "strong" });
+
+  const sendGuardEvent = async (
+    event: "sleep_guard_started" | "sleep_guard_ended",
+  ): Promise<GuardResult> => {
+    const token = Netlify.env.get("SLEEP_GUARD_SHORTCUT_TOKEN");
+    if (!token) return { ok: false, error: "guard_not_configured" };
+    try {
+      const response = await fetch(new URL("/api/sleep-guard-event", request.url), {
+        method: "POST",
+        headers: {
+          authorization: `Bearer ${token}`,
+          "content-type": "application/json; charset=utf-8",
+        },
+        body: JSON.stringify({
+          event,
+          source: "chatgpt_mcp",
+          request_id: crypto.randomUUID(),
+        }),
+        signal: AbortSignal.timeout(12_000),
+      });
+      const result = await response.json().catch(() => ({
+        ok: false,
+        error: "invalid_guard_response",
+      })) as GuardResult;
+      return response.ok ? result : {
+        ok: false,
+        error: result.error ?? "guard_request_failed",
+      };
+    } catch {
+      return { ok: false, error: "guard_request_failed" };
+    }
+  };
+
   return {
-    activateGuard: async () => {
-      const token = Netlify.env.get("SLEEP_GUARD_SHORTCUT_TOKEN");
-      if (!token) return { ok: false, error: "guard_not_configured" };
-      try {
-        const response = await fetch(new URL("/api/sleep-guard-event", request.url), {
-          method: "POST",
-          headers: {
-            authorization: `Bearer ${token}`,
-            "content-type": "application/json; charset=utf-8",
-          },
-          body: JSON.stringify({
-            event: "sleep_guard_started",
-            source: "chatgpt_mcp",
-            request_id: crypto.randomUUID(),
-          }),
-          signal: AbortSignal.timeout(12_000),
-        });
-        const result = await response.json().catch(() => ({ ok: false, error: "invalid_guard_response" })) as GuardResult;
-        return response.ok ? result : { ok: false, error: result.error ?? "guard_request_failed" };
-      } catch {
-        return { ok: false, error: "guard_request_failed" };
-      }
-    },
+    activateGuard: async () => await sendGuardEvent("sleep_guard_started"),
+    deactivateGuard: async () => await sendGuardEvent("sleep_guard_ended"),
     readGuardState: async () => await eventStore.get("state/current", { type: "json" }) as JsonObject | null,
   };
 }
