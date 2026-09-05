@@ -125,18 +125,18 @@ assert.equal(functionModule.barkCopy("blocked_app_opened", transition, null), nu
 
 const beforeCutoff = functionModule.applyEvent(null, {
   event: "blocked_app_opened",
-}, "2026-08-08T16:59:00.000Z");
-assert.equal(beforeCutoff.stage, "inactive", "00:59 in Shanghai must not auto-start");
+}, "2026-08-08T15:59:00.000Z");
+assert.equal(beforeCutoff.stage, "inactive", "23:59 in Shanghai must not auto-start");
 assert.equal(beforeCutoff.auto_started, false);
 
 const lateOpen = functionModule.applyEvent(null, {
   event: "blocked_app_opened",
-}, "2026-08-08T17:00:00.000Z");
-assert.equal(lateOpen.state.active, true, "01:00 in Shanghai must auto-start on an app open");
+}, "2026-08-08T16:00:00.000Z");
+assert.equal(lateOpen.state.active, true, "00:00 in Shanghai must auto-start on an app open");
 assert.equal(lateOpen.state.attempts, 1);
 assert.equal(lateOpen.stage, "first_warning");
 assert.equal(lateOpen.auto_started, true);
-assert.equal(lateOpen.state.ends_at, "2026-08-09T01:00:00.000Z");
+assert.equal(lateOpen.state.ends_at, "2026-08-09T00:00:00.000Z");
 assert.equal(
   functionModule.barkCopy("blocked_app_opened", lateOpen, null).body,
   "这么晚还没睡？小肥豹该收起手机，乖乖休息了。",
@@ -144,8 +144,8 @@ assert.equal(
 
 const atWakeTime = functionModule.applyEvent(null, {
   event: "blocked_app_opened",
-}, "2026-08-09T01:00:00.000Z");
-assert.equal(atWakeTime.stage, "inactive", "09:00 in Shanghai must not auto-start");
+}, "2026-08-09T00:00:00.000Z");
+assert.equal(atWakeTime.stage, "inactive", "08:00 in Shanghai must not auto-start");
 
 const manuallyEnded = functionModule.applyEvent(lateOpen.state, {
   event: "sleep_guard_ended",
@@ -153,12 +153,12 @@ const manuallyEnded = functionModule.applyEvent(lateOpen.state, {
 const afterManualWake = functionModule.applyEvent(manuallyEnded.state, {
   event: "blocked_app_opened",
 }, "2026-08-08T19:00:00.000Z");
-assert.equal(afterManualWake.stage, "inactive", "manual wake must suppress auto-start until 09:00");
+assert.equal(afterManualWake.stage, "inactive", "manual wake must suppress auto-start until 08:00");
 assert.equal(afterManualWake.auto_started, false);
 
 const nextNight = functionModule.applyEvent(manuallyEnded.state, {
   event: "blocked_app_opened",
-}, "2026-08-09T17:00:00.000Z");
+}, "2026-08-09T16:00:00.000Z");
 assert.equal(nextNight.auto_started, true, "manual wake suppression must expire before the next night");
 
 const expiring = functionModule.applyEvent(null, {
@@ -171,19 +171,19 @@ assert.equal(expiredAttempt.state.active, false);
 
 const overnightDefault = functionModule.applyEvent(null, {
   event: "sleep_guard_started",
-}, "2026-08-08T17:00:00.000Z");
+}, "2026-08-08T16:00:00.000Z");
 assert.equal(
   overnightDefault.state.ends_at,
-  "2026-08-09T01:00:00.000Z",
-  "01:00 in Shanghai must end at 09:00 the same morning",
+  "2026-08-09T00:00:00.000Z",
+  "00:00 in Shanghai must end at 08:00 the same morning",
 );
 const afternoonDefault = functionModule.applyEvent(null, {
   event: "sleep_guard_started",
 }, "2026-08-08T05:00:00.000Z");
 assert.equal(
   afternoonDefault.state.ends_at,
-  "2026-08-09T01:00:00.000Z",
-  "after 09:00 in Shanghai must end at 09:00 the next morning",
+  "2026-08-09T00:00:00.000Z",
+  "after 08:00 in Shanghai must end at 08:00 the next morning",
 );
 
 const request = (body, token = "test-shortcut-token") => new Request("https://example.test/api", {
@@ -300,16 +300,16 @@ assert.equal(persistedBeforeBarkFailure, true);
 const mcpModule = await import(new URL("netlify/netlify/functions/mcp.mts", root));
 assert.equal(
   mcpModule.sessionWakeCutoff("2026-08-25T11:12:30.520Z"),
-  Date.parse("2026-08-26T01:00:00.000Z"),
-  "a legacy evening session must expire at 09:00 Shanghai time",
+  Date.parse("2026-08-26T00:00:00.000Z"),
+  "a legacy evening session must expire at 08:00 Shanghai time",
 );
 assert.equal(
-  mcpModule.sessionWakeCutoff("2026-08-26T00:00:00.000Z"),
-  Date.parse("2026-08-26T01:00:00.000Z"),
+  mcpModule.sessionWakeCutoff("2026-08-25T23:00:00.000Z"),
+  Date.parse("2026-08-26T00:00:00.000Z"),
 );
 assert.equal(
-  mcpModule.sessionWakeCutoff("2026-08-26T02:00:00.000Z"),
-  Date.parse("2026-08-27T01:00:00.000Z"),
+  mcpModule.sessionWakeCutoff("2026-08-26T01:00:00.000Z"),
+  Date.parse("2026-08-27T00:00:00.000Z"),
 );
 assert.equal(mcpModule.sessionWakeCutoff("not-a-date"), null);
 assert.ok(mcpModule.config.path.includes("/mcp"));
