@@ -40,9 +40,9 @@ Content-Type: application/json
 {"event":"sleep_guard_ended","source":"ios_shortcuts"}
 ```
 
-`sleep_guard_started` 可选传 ISO 8601 格式的 `ends_at`，但必须在当前时间后的 24 小时内；未传时默认在上海时间下一次上午 11:00 自动过期。
+`sleep_guard_started` 可选传 ISO 8601 格式的 `ends_at`，但必须在当前时间后的 24 小时内；未传时默认在上海时间下一次上午 8:00 自动过期。
 
-如果没有先发送 `sleep_guard_started`，上海时间凌晨 1:00 至上午 11:00 的第一次 `blocked_app_opened` 会自动开启守卫、计为第一次偷开，并返回 `auto_started: true`。若使用者已发送 `sleep_guard_ended`，当天上午 11:00 前不会再次自动开启。
+如果没有先发送 `sleep_guard_started`，上海时间凌晨 0:00 至上午 8:00 的第一次 `blocked_app_opened` 会自动开启守卫、计为第一次偷开，并返回 `auto_started: true`。若使用者已发送 `sleep_guard_ended`，当天上午 8:00 前不会再次自动开启。
 
 ## 状态与证据
 
