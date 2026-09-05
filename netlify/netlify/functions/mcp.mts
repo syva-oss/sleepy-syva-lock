@@ -7,7 +7,7 @@ const AUTH_REQUEST_TTL_MS = 10 * 60 * 1000;
 const AUTH_CODE_TTL_MS = 5 * 60 * 1000;
 const ACCESS_TOKEN_TTL_SECONDS = 90 * 24 * 60 * 60;
 const SHANGHAI_OFFSET_MS = 8 * 60 * 60 * 1000;
-const DEFAULT_WAKE_HOUR = 9;
+const DEFAULT_WAKE_HOUR = 8;
 const DAY_MS = 24 * 60 * 60 * 1000;
 type JsonObject = Record<string, unknown>;
 
